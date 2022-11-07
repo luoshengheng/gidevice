@@ -49,6 +49,13 @@ type device struct {
 	pcapd             Pcapd
 }
 
+func (d *device) GetInstrumentsClient() (inturments *libimobiledevice.InstrumentsClient) {
+	if d.instruments == nil {
+		d.instrumentsService()
+	}
+	return d.instruments.GetClient()
+}
+
 func (d *device) Properties() DeviceProperties {
 	return *d.properties
 }

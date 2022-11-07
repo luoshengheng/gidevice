@@ -92,3 +92,17 @@ func Test_instruments_DeviceInfo(t *testing.T) {
 	t.Log(devInfo.ProductVersion)
 	t.Log(devInfo.XRDeviceClassName)
 }
+
+func Test_Performance(t *testing.T) {
+	devInfo, err := instrumentsSrv.DeviceInfo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(devInfo.Description)
+	t.Log(devInfo.DisplayName)
+	t.Log(devInfo.Identifier)
+	t.Log(devInfo.Version)
+	t.Log(devInfo.ProductType)
+	t.Log(devInfo.ProductVersion)
+	t.Log(devInfo.XRDeviceClassName)
+}

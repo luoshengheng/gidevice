@@ -77,6 +77,7 @@ type Device interface {
 	springBoardService() (springBoard SpringBoard, err error)
 	GetIconPNGData(bundleId string) (raw *bytes.Buffer, err error)
 	GetInterfaceOrientation() (orientation OrientationState, err error)
+	GetInstrumentsClient() (inturments *libimobiledevice.InstrumentsClient)
 }
 
 type DeviceProperties = libimobiledevice.DeviceProperties
@@ -153,6 +154,7 @@ type Instruments interface {
 	// SysMonStart(cfg ...interface{}) (_ interface{}, err error)
 
 	registerCallback(obj string, cb func(m libimobiledevice.DTXMessageResult))
+	GetClient() (client *libimobiledevice.InstrumentsClient)
 }
 
 type Testmanagerd interface {

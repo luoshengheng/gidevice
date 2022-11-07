@@ -3,6 +3,7 @@ package giDevice
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/electricbubble/gidevice/pkg/libimobiledevice"
 )
 
@@ -16,6 +17,10 @@ func newInstruments(client *libimobiledevice.InstrumentsClient) *instruments {
 
 type instruments struct {
 	client *libimobiledevice.InstrumentsClient
+}
+
+func (i *instruments) GetClient() (client *libimobiledevice.InstrumentsClient) {
+	return i.client
 }
 
 func (i *instruments) notifyOfPublishedCapabilities() (err error) {
