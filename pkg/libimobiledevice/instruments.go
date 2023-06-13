@@ -39,3 +39,7 @@ func (c *InstrumentsClient) Invoke(selector string, args *AuxBuffer, channelCode
 func (c *InstrumentsClient) RegisterCallback(obj string, cb func(m DTXMessageResult)) {
 	c.client.RegisterCallback(obj, cb)
 }
+
+func (c *InstrumentsClient) RegisterCallbackArgs(obj string, cb func(m DTXMessageResult, args ...interface{}), args ...interface{}) { //added
+	c.client.RegisterCallbackArgs(obj, cb, args...)
+}

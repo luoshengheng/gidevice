@@ -28,7 +28,7 @@ func (i *instruments) notifyOfPublishedCapabilities() (err error) {
 	return
 }
 
-func (i *instruments) requestChannel(channel string) (id uint32, err error) {
+func (i *instruments) RequestChannel(channel string) (id uint32, err error) { //modified
 	return i.client.RequestChannel(channel)
 }
 
@@ -46,7 +46,7 @@ func (i *instruments) AppLaunch(bundleID string, opts ...AppLaunchOption) (pid i
 	}
 
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
 		return 0, err
 	}
 
@@ -82,7 +82,7 @@ func (i *instruments) AppLaunch(bundleID string, opts ...AppLaunchOption) (pid i
 
 func (i *instruments) appProcess(bundleID string) (err error) {
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
 		return err
 	}
 
@@ -101,7 +101,7 @@ func (i *instruments) appProcess(bundleID string) (err error) {
 
 func (i *instruments) startObserving(pid int) (err error) {
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
 		return err
 	}
 
@@ -124,7 +124,7 @@ func (i *instruments) startObserving(pid int) (err error) {
 
 func (i *instruments) AppKill(pid int) (err error) {
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.processcontrol"); err != nil {
 		return err
 	}
 
@@ -143,7 +143,7 @@ func (i *instruments) AppKill(pid int) (err error) {
 
 func (i *instruments) AppRunningProcesses() (processes []Process, err error) {
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.deviceinfo"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.deviceinfo"); err != nil {
 		return nil, err
 	}
 
@@ -192,7 +192,7 @@ func (i *instruments) AppList(opts ...AppListOption) (apps []Application, err er
 	}
 
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.device.applictionListing"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.device.applictionListing"); err != nil {
 		return nil, err
 	}
 
@@ -237,7 +237,7 @@ func (i *instruments) AppList(opts ...AppListOption) (apps []Application, err er
 
 func (i *instruments) DeviceInfo() (devInfo *DeviceInfo, err error) {
 	var id uint32
-	if id, err = i.requestChannel("com.apple.instruments.server.services.deviceinfo"); err != nil {
+	if id, err = i.RequestChannel("com.apple.instruments.server.services.deviceinfo"); err != nil {
 		return nil, err
 	}
 
@@ -258,8 +258,16 @@ func (i *instruments) DeviceInfo() (devInfo *DeviceInfo, err error) {
 	return
 }
 
-func (i *instruments) registerCallback(obj string, cb func(m libimobiledevice.DTXMessageResult)) {
+func (i *instruments) RegisterCallback(obj string, cb func(m libimobiledevice.DTXMessageResult)) { //modified
 	i.client.RegisterCallback(obj, cb)
+}
+
+func (i *instruments) RegisterCallbackArgs(obj string, cb func(m libimobiledevice.DTXMessageResult, args ...interface{}), args ...interface{}) { //added
+	i.client.RegisterCallbackArgs(obj, cb, args...)
+}
+
+func (i *instruments) Invoke(selector string, args *libimobiledevice.AuxBuffer, channelCode uint32, expectsReply bool) (result *libimobiledevice.DTXMessageResult, err error) { //added
+	return i.client.Invoke(selector, args, channelCode, expectsReply)
 }
 
 type Application struct {

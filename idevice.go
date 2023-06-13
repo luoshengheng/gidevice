@@ -148,13 +148,14 @@ type Instruments interface {
 	startObserving(pid int) (err error)
 
 	notifyOfPublishedCapabilities() (err error)
-	requestChannel(channel string) (id uint32, err error)
+	RequestChannel(channel string) (id uint32, err error) //modified
 
-	// sysMonSetConfig(cfg ...interface{}) (err error)
-	// SysMonStart(cfg ...interface{}) (_ interface{}, err error)
-
-	registerCallback(obj string, cb func(m libimobiledevice.DTXMessageResult))
+	RegisterCallback(obj string, cb func(m libimobiledevice.DTXMessageResult))
 	GetClient() (client *libimobiledevice.InstrumentsClient)
+
+	//added
+	RegisterCallbackArgs(obj string, cb func(m libimobiledevice.DTXMessageResult, args ...interface{}), args ...interface{})
+	Invoke(selector string, args *libimobiledevice.AuxBuffer, channelCode uint32, expectsReply bool) (result *libimobiledevice.DTXMessageResult, err error)
 }
 
 type Testmanagerd interface {

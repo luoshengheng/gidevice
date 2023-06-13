@@ -743,7 +743,7 @@ func (d *device) XCTest(bundleID string, opts ...XCTestOption) (out <-chan strin
 		}
 	}
 
-	d.instruments.registerCallback("outputReceived:fromProcess:atTime:", func(m libimobiledevice.DTXMessageResult) {
+	d.instruments.RegisterCallback("outputReceived:fromProcess:atTime:", func(m libimobiledevice.DTXMessageResult) {
 		// fmt.Println("###### instruments ### -->", m.Aux[0])
 		_out <- fmt.Sprintf("%s", m.Aux[0])
 	})
@@ -776,7 +776,7 @@ func (d *device) XCTest(bundleID string, opts ...XCTestOption) (out <-chan strin
 	}
 
 	go func() {
-		d.instruments.registerCallback("_Golang-iDevice_Over", func(_ libimobiledevice.DTXMessageResult) {
+		d.instruments.RegisterCallback("_Golang-iDevice_Over", func(_ libimobiledevice.DTXMessageResult) {
 			cancelFunc()
 		})
 

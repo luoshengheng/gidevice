@@ -3,14 +3,14 @@ package libimobiledevice
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
-	"github.com/electricbubble/gidevice/pkg/nskeyedarchiver"
 	"io"
 	"strings"
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/electricbubble/gidevice/pkg/nskeyedarchiver"
 )
 
 const (
@@ -29,7 +29,9 @@ func newDtxMessageClient(innerConn InnerConn) *dtxMessageClient {
 		mu:        sync.Mutex{},
 		resultMap: make(map[interface{}]*DTXMessageResult),
 
-		callbackMap: make(map[string]func(m DTXMessageResult)),
+		callbackMap:     make(map[string]func(m DTXMessageResult)),
+		callbackArgsMap: make(map[string]func(m DTXMessageResult, args ...interface{})), //added
+		cbArgsMap:       make(map[string][]interface{}),                                 //added
 	}
 	c.RegisterCallback(_unregistered, func(m DTXMessageResult) {})
 	c.RegisterCallback(_over, func(m DTXMessageResult) {})
@@ -51,7 +53,9 @@ type dtxMessageClient struct {
 	mu        sync.Mutex
 	resultMap map[interface{}]*DTXMessageResult
 
-	callbackMap map[string]func(m DTXMessageResult)
+	callbackMap     map[string]func(m DTXMessageResult)
+	callbackArgsMap map[string]func(m DTXMessageResult, args ...interface{}) //added
+	cbArgsMap       map[string][]interface{}                                 //added
 
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -109,16 +113,16 @@ func (c *dtxMessageClient) SendDTXMessage(selector string, aux []byte, channelCo
 	return
 }
 
-func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err error) {
+type UnmarshalError struct { //added
+	Data []byte
+}
+
+func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err error) { //modified
 	bufPayload := new(bytes.Buffer)
-
-	header := new(dtxMessageHeaderPacket)
 	var needToReply *dtxMessageHeaderPacket = nil
-
+	header := new(dtxMessageHeaderPacket)
+	lenHeader := int(unsafe.Sizeof(*header))
 	for {
-		header = new(dtxMessageHeaderPacket)
-
-		lenHeader := int(unsafe.Sizeof(*header))
 		var bufHeader []byte
 		if bufHeader, err = c.innerConn.Read(lenHeader); err != nil {
 			return nil, fmt.Errorf("receive: length of DTXMessageHeader: %w", err)
@@ -127,27 +131,6 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 		if header, err = header.unpack(bytes.NewBuffer(bufHeader)); err != nil {
 			return nil, fmt.Errorf("receive: DTXMessageHeader unpack: %w", err)
 		}
-
-		if header.ExpectsReply == 1 {
-			needToReply = header
-		}
-
-		if header.Magic != 0x1F3D5B79 {
-			return nil, fmt.Errorf("receive: bad magic %x", header.Magic)
-		}
-
-		if header.ConversationIndex == 1 {
-			if header.Identifier != c.msgID {
-				return nil, fmt.Errorf("receive: except identifier %d new identifier %d", c.msgID, header.Identifier)
-			}
-		} else if header.ConversationIndex == 0 {
-			if header.Identifier > c.msgID {
-				c.msgID = header.Identifier
-			}
-		} else {
-			return nil, fmt.Errorf("receive: invalid conversationIndex %d", header.ConversationIndex)
-		}
-
 		if header.FragmentId == 0 && header.FragmentCount > 1 {
 			continue
 		}
@@ -169,42 +152,16 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 		return nil, fmt.Errorf("receive: unpack DTXMessagePayload: %w", err)
 	}
 
-	compress := (payload.Flags & 0xff000) >> 12
-	if compress != 0 {
-		return nil, fmt.Errorf("receive: message is compressed type %d", compress)
-	}
-
 	payloadSize := uint32(unsafe.Sizeof(*payload))
 	objOffset := uint64(payloadSize + payload.AuxiliaryLength)
+	objEndIdx := objOffset + (payload.TotalLength - uint64(payload.AuxiliaryLength))
 
 	var aux, obj []byte
-
-	// see https://github.com/electricbubble/gidevice/issues/28
-	if r, l := payloadSize+payload.AuxiliaryLength, len(rawPayload); int(r) <= l {
-		aux = rawPayload[payloadSize:r]
-	} else {
-		debugLog(fmt.Sprintf("<-- DTXMessage %s\n%s\n"+
-			"[aux] bounds out of range [:%d] with capacity %d",
-			header.String(), payload.String(),
-			r, l,
-		))
+	if len(rawPayload) < int(objOffset) || len(rawPayload) < int(objEndIdx) {
+		return nil, fmt.Errorf("receive: uncompleted data: %w", err)
 	}
-	if r, l := objOffset+(payload.TotalLength-uint64(payload.AuxiliaryLength)), len(rawPayload); int(r) <= l {
-		obj = rawPayload[objOffset:r]
-	} else {
-		debugLog(fmt.Sprintf("<-- DTXMessage %s\n%s\n"+
-			"[obj] bounds out of range [:%d] with capacity %d",
-			header.String(), payload.String(),
-			r, l,
-		))
-	}
-
-	debugLog(fmt.Sprintf(
-		"<-- DTXMessage %s\n%s\n"+
-			"%s\n%s\n",
-		header.String(), payload.String(),
-		hex.Dump(aux), hex.Dump(obj),
-	))
+	aux = rawPayload[payloadSize:objOffset]
+	obj = rawPayload[objOffset:objEndIdx]
 
 	result = new(DTXMessageResult)
 
@@ -217,15 +174,20 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 	}
 
 	if len(obj) > 0 {
-		if obj, err := NewNSKeyedArchiver().Unmarshal(obj); err != nil {
-			return nil, fmt.Errorf("receive: unpack NSKeyedArchiver: %w", err)
+		if unmarshalObj, err := NewNSKeyedArchiver().Unmarshal(obj); err != nil {
+			result.Obj = UnmarshalError{obj}
 		} else {
-			result.Obj = obj
+			result.Obj = unmarshalObj
 		}
-	}
 
+	}
+	channelID := fmt.Sprintf("%d", int64(1<<32)-int64(header.ChannelCode))
 	sObj, ok := result.Obj.(string)
-	if fn, do := c.callbackMap[sObj]; do {
+	if fn, do := c.callbackArgsMap[channelID]; do {
+		fn(*result, c.cbArgsMap[channelID]...)
+	} else if fn, do := c.callbackMap[channelID]; do {
+		fn(*result)
+	} else if fn, do := c.callbackMap[sObj]; do {
 		fn(*result)
 	} else {
 		c.callbackMap[_unregistered](*result)
@@ -246,6 +208,24 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 	}
 
 	return
+}
+
+func (c *dtxMessageClient) RegisterCallbackArgs(obj string, cb func(m DTXMessageResult, args ...interface{}), args ...interface{}) {
+	if obj == _unregistered || obj == _over {
+		c.callbackArgsMap[obj] = cb
+		c.cbArgsMap[obj] = args
+	} else {
+		if channelID, ok := c.openedChannels[obj]; ok {
+			channel := fmt.Sprintf("%d", int(channelID))
+			c.callbackArgsMap[channel] = cb
+			c.cbArgsMap[channel] = args
+		} else {
+			channelID, _ := c.MakeChannel(obj)
+			channel := fmt.Sprintf("%d", int(channelID))
+			c.callbackArgsMap[channel] = cb
+			c.cbArgsMap[channel] = args
+		}
+	}
 }
 
 func (c *dtxMessageClient) Connection() (publishedChannels map[string]int32, err error) {
