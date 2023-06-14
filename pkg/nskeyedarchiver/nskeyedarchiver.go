@@ -70,6 +70,11 @@ func archive(_objects []interface{}, _value interface{}) (objects []interface{},
 			uid = plist.UID(len(_objects))
 			objects = newXCTestConfiguration(_value).archive(_objects)
 			return
+		case "NSSet":
+			_NSSet := _value.(*NSSet)
+			uid = plist.UID(len(_objects))
+			objects = _NSSet.archive(_objects)
+			return
 		}
 	}
 

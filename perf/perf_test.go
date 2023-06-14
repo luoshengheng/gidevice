@@ -2,6 +2,8 @@ package perf
 
 import (
 	"fmt"
+	"github.com/electricbubble/gidevice/pkg/nskeyedarchiver"
+	uuid "github.com/satori/go.uuid"
 	"log"
 	"strings"
 	"testing"
@@ -10,7 +12,6 @@ import (
 	giDevice "github.com/electricbubble/gidevice"
 	"github.com/electricbubble/gidevice/pkg/libimobiledevice"
 	biPack "github.com/roman-kachanovsky/go-binary-pack/binary-pack"
-	uuid "github.com/satori/go.uuid"
 )
 
 type Any = interface{}
@@ -33,7 +34,7 @@ func Test_Performance(t *testing.T) {
 	args := libimobiledevice.NewAuxBuffer()
 	uuid4 := strings.ToUpper(uuid.NewV4().String())
 	tc := map[string]Any{
-		"kdf2": []int64{630784000, 833617920, 830472456},
+		"kdf2": nskeyedarchiver.NewNSSet([]interface{}{630784000, 833617920, 830472456}),
 		"tk":   3,
 		"uuid": uuid4,
 	}

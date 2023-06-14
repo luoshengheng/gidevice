@@ -231,7 +231,7 @@ func (c *dtxMessageClient) RegisterCallbackArgs(obj string, cb func(m DTXMessage
 func (c *dtxMessageClient) Connection() (publishedChannels map[string]int32, err error) {
 	args := NewAuxBuffer()
 	if err = args.AppendObject(map[string]interface{}{
-		"com.apple.private.DTXBlockCompression": uint64(2),
+		"com.apple.private.DTXBlockCompression": uint64(0),
 		"com.apple.private.DTXConnection":       uint64(1),
 	}); err != nil {
 		return nil, fmt.Errorf("connection DTXMessage: %w", err)
