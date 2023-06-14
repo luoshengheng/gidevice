@@ -224,6 +224,7 @@ type Pcapd interface {
 type DiagnosticsRelay interface {
 	Reboot() error
 	Shutdown() error
+	DumpBattery() (result interface{}, err error) //add
 }
 
 type CrashReportMover interface {
