@@ -37,3 +37,7 @@ func (c *DiagnosticsRelayClient) NewXmlPacket(req interface{}) (Packet, error) {
 func (c *DiagnosticsRelayClient) SendPacket(pkt Packet) (err error) {
 	return c.client.SendPacket(pkt)
 }
+
+func (c *DiagnosticsRelayClient) ReceiveBytes() (bytes []byte, err error) {
+	return c.client.ReceiveBytes()
+}

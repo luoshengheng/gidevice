@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"howett.net/plist"
 )
 
@@ -76,5 +77,17 @@ func (c *servicePacketClient) ReceivePacket() (respPkt Packet, err error) {
 		return nil, fmt.Errorf("receive packet: %s", reply.Error)
 	}
 
+	return
+}
+
+func (c *servicePacketClient) ReceiveBytes() (result []byte, err error) {
+	var bufLen []byte
+	if bufLen, err = c.innerConn.Read(4); err != nil {
+		return nil, fmt.Errorf("receive packet: %w", err)
+	}
+	lenPkg := binary.BigEndian.Uint32(bufLen)
+	if result, err = c.innerConn.Read(int(lenPkg)); err != nil {
+		return nil, fmt.Errorf("receive packet: %w", err)
+	}
 	return
 }

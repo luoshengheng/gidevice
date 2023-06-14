@@ -78,6 +78,7 @@ type Device interface {
 	GetIconPNGData(bundleId string) (raw *bytes.Buffer, err error)
 	GetInterfaceOrientation() (orientation OrientationState, err error)
 	GetInstrumentsClient() (inturments *libimobiledevice.InstrumentsClient)
+	GetLockdown() (lockdown *lockdown) //add
 }
 
 type DeviceProperties = libimobiledevice.DeviceProperties

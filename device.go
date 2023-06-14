@@ -49,6 +49,11 @@ type device struct {
 	pcapd             Pcapd
 }
 
+func (d *device) GetLockdown() (lockdown *lockdown) {
+	d.lockdownService()
+	return d.lockdown
+}
+
 func (d *device) GetInstrumentsClient() (inturments *libimobiledevice.InstrumentsClient) {
 	if d.instruments == nil {
 		d.instrumentsService()
