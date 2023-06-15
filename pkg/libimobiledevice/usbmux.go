@@ -5,11 +5,12 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"fmt"
-	"howett.net/plist"
 	"net"
 	"runtime"
 	"strconv"
 	"time"
+
+	"howett.net/plist"
 )
 
 var DefaultDeadlineTimeout = 30 * time.Second
@@ -355,8 +356,11 @@ func (c *safeConn) Handshake(version []int, pairRecord *PairRecord) (err error) 
 		minVersion = tls.VersionTLS11
 		maxVersion = tls.VersionTLS13
 	}
-
-	cert, err := tls.X509KeyPair(pairRecord.RootCertificate, pairRecord.RootPrivateKey)
+	certPEMBlock, keyPEMBlock := pairRecord.RootCertificate, pairRecord.RootPrivateKey
+	if len(keyPEMBlock) == 0 {
+		certPEMBlock, keyPEMBlock = pairRecord.HostCertificate, pairRecord.HostPrivateKey
+	}
+	cert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 	if err != nil {
 		return err
 	}
