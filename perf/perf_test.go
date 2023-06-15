@@ -2,12 +2,13 @@ package perf
 
 import (
 	"fmt"
-	"github.com/electricbubble/gidevice/pkg/nskeyedarchiver"
-	uuid "github.com/satori/go.uuid"
 	"log"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/electricbubble/gidevice/pkg/nskeyedarchiver"
+	uuid "github.com/satori/go.uuid"
 
 	giDevice "github.com/electricbubble/gidevice"
 	"github.com/electricbubble/gidevice/pkg/libimobiledevice"
@@ -16,6 +17,23 @@ import (
 
 type Any = interface{}
 
+func Test_GetValue(t *testing.T) {
+	usbmux, _ := giDevice.NewUsbmux()
+	devices, err := usbmux.Devices()
+	var device giDevice.Device
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if len(devices) < 1 {
+		log.Fatalln("No iOS devices connected!")
+	}
+	device = devices[0]
+	res, err := device.GetValue("", "")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res)
+}
 func Test_Performance(t *testing.T) {
 	usbmux, _ := giDevice.NewUsbmux()
 	devices, err := usbmux.Devices()
