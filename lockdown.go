@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/electricbubble/gidevice/pkg/libimobiledevice"
@@ -370,17 +371,21 @@ func (c *lockdown) InstallationProxyService() (installationProxy InstallationPro
 	return
 }
 
+var insturmentsLock sync.Mutex
+
 func (c *lockdown) InstrumentsService() (instruments Instruments, err error) {
+	insturmentsLock.Lock()
+	defer insturmentsLock.Unlock()
+	var instrumentsClient *libimobiledevice.InstrumentsClient
 	service := libimobiledevice.InstrumentsServiceName
 	if DeviceVersion(c.iOSVersion...) >= DeviceVersion(14, 0, 0) {
 		service = libimobiledevice.InstrumentsSecureProxyServiceName
 	}
-
 	var innerConn InnerConn
 	if innerConn, err = c._startService(service, nil); err != nil {
 		return nil, err
 	}
-	instrumentsClient := libimobiledevice.NewInstrumentsClient(innerConn)
+	instrumentsClient = libimobiledevice.NewInstrumentsClient(innerConn)
 	instruments = newInstruments(instrumentsClient)
 
 	if service == libimobiledevice.InstrumentsServiceName {
@@ -390,7 +395,6 @@ func (c *lockdown) InstrumentsService() (instruments Instruments, err error) {
 	if err = instruments.notifyOfPublishedCapabilities(); err != nil {
 		return nil, err
 	}
-
 	return
 }
 

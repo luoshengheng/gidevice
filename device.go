@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/electricbubble/gidevice/pkg/ipa"
@@ -168,11 +169,17 @@ func (d *device) DeletePairRecord() (err error) {
 	return
 }
 
-func (d *device) lockdownService() (lockdown Lockdown, err error) {
-	// if d.lockdown != nil {
-	// 	return d.lockdown, nil
-	// }
+var ldLock sync.Mutex
 
+func (d *device) lockdownService() (lockdown Lockdown, err error) { //modified
+	ldLock.Lock()
+	defer ldLock.Unlock()
+	if d.lockdown != nil {
+		_, err := d.lockdown.InstrumentsService()
+		if err == nil {
+			return d.lockdown, nil
+		}
+	}
 	var innerConn InnerConn
 	if innerConn, err = d.NewConnect(LockdownPort, 0); err != nil {
 		return nil, err
@@ -320,7 +327,11 @@ func (d *device) InstallationProxyBrowse(opts ...InstallationProxyOption) (curre
 	return d.installationProxy.Browse(opts...)
 }
 
-func (d *device) InstallationProxyLookup(opts ...InstallationProxyOption) (lookupResult interface{}, err error) {
+var lplLock sync.Mutex
+
+func (d *device) InstallationProxyLookup(opts ...InstallationProxyOption) (lookupResult interface{}, err error) { //modified
+	lplLock.Lock()
+	defer lplLock.Unlock()
 	if _, err = d.installationProxyService(); err != nil {
 		return nil, err
 	}
