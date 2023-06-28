@@ -260,7 +260,11 @@ func (c *dtxMessageClient) Connection() (publishedChannels map[string]int32, err
 	return c.publishedChannels, nil
 }
 
-func (c *dtxMessageClient) MakeChannel(channel string) (id uint32, err error) {
+var mkcLock sync.Mutex
+
+func (c *dtxMessageClient) MakeChannel(channel string) (id uint32, err error) { //modified
+	mkcLock.Lock()
+	defer mkcLock.Unlock()
 	var ok bool
 	if id, ok = c.openedChannels[channel]; ok {
 		return id, nil
