@@ -157,7 +157,9 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 	payloadSize := uint32(unsafe.Sizeof(*payload))
 	objOffset := uint64(payloadSize + payload.AuxiliaryLength)
 	objEndIdx := objOffset + (payload.TotalLength - uint64(payload.AuxiliaryLength))
-
+	if objOffset > objEndIdx {
+		return nil, fmt.Errorf("invaild payload total length: %v and auxiliary length: %v", payload.TotalLength, payload.AuxiliaryLength)
+	}
 	var aux, obj []byte
 	if len(rawPayload) < int(objOffset) || len(rawPayload) < int(objEndIdx) {
 		return nil, fmt.Errorf("receive: uncompleted data: %w", err)
@@ -214,13 +216,14 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 }
 
 func (c *dtxMessageClient) RegisterCallbackArgs(obj string, cb func(m DTXMessageResult, args ...interface{}), args ...interface{}) {
-	ocLock.Lock()
-	defer ocLock.Unlock()
 	if obj == _unregistered || obj == _over {
 		c.callbackArgsMap[obj] = cb
 		c.cbArgsMap[obj] = args
 	} else {
-		if channelID, ok := c.openedChannels[obj]; ok {
+		ocLock.Lock()
+		channelID, ok := c.openedChannels[obj]
+		ocLock.Unlock()
+		if ok {
 			channel := fmt.Sprintf("%d", int(channelID))
 			c.callbackArgsMap[channel] = cb
 			c.cbArgsMap[channel] = args
@@ -266,13 +269,14 @@ func (c *dtxMessageClient) Connection() (publishedChannels map[string]int32, err
 
 func (c *dtxMessageClient) MakeChannel(channel string) (id uint32, err error) { //modified
 	ocLock.Lock()
-	defer ocLock.Unlock()
 	var ok bool
 	if id, ok = c.openedChannels[channel]; ok {
+		ocLock.Unlock()
 		return id, nil
+	} else {
+		id = uint32(len(c.openedChannels) + 1)
+		ocLock.Unlock()
 	}
-
-	id = uint32(len(c.openedChannels) + 1)
 	args := NewAuxBuffer()
 	args.AppendInt32(int32(id))
 	if err = args.AppendObject(channel); err != nil {
@@ -289,8 +293,9 @@ func (c *dtxMessageClient) MakeChannel(channel string) (id uint32, err error) { 
 	if _, err = c.GetResult(msgID); err != nil {
 		return 0, fmt.Errorf("make channel receive: %w", err)
 	}
-
+	ocLock.Lock()
 	c.openedChannels[channel] = id
+	ocLock.Unlock()
 
 	return
 }
@@ -300,16 +305,18 @@ func (c *dtxMessageClient) RegisterCallback(obj string, cb func(m DTXMessageResu
 }
 
 func (c *dtxMessageClient) GetResult(key interface{}) (*DTXMessageResult, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	startTime := time.Now()
 	for {
 		time.Sleep(100 * time.Millisecond)
+		c.mu.Lock()
 		if v, ok := c.resultMap[key]; ok {
 			delete(c.resultMap, key)
+			c.mu.Unlock()
 			return v, nil
+		} else {
+			c.mu.Unlock()
 		}
-		if elapsed := time.Since(startTime); elapsed > 3*time.Second {
+		if elapsed := time.Since(startTime); elapsed > 30*time.Second {
 			return nil, fmt.Errorf("dtx: get result: timeout after %v", elapsed)
 		}
 	}
