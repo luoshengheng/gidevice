@@ -300,18 +300,16 @@ func (c *dtxMessageClient) RegisterCallback(obj string, cb func(m DTXMessageResu
 }
 
 func (c *dtxMessageClient) GetResult(key interface{}) (*DTXMessageResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	startTime := time.Now()
 	for {
 		time.Sleep(100 * time.Millisecond)
-		c.mu.Lock()
 		if v, ok := c.resultMap[key]; ok {
 			delete(c.resultMap, key)
-			c.mu.Unlock()
 			return v, nil
-		} else {
-			c.mu.Unlock()
 		}
-		if elapsed := time.Since(startTime); elapsed > 30*time.Second {
+		if elapsed := time.Since(startTime); elapsed > 3*time.Second {
 			return nil, fmt.Errorf("dtx: get result: timeout after %v", elapsed)
 		}
 	}
