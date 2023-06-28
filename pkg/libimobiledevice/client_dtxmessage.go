@@ -185,6 +185,7 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 	sObj, ok := result.Obj.(string)
 	if fn, do := c.callbackArgsMap[channelID]; do {
 		fn(*result, c.cbArgsMap[channelID]...)
+		return
 	} else if fn, do := c.callbackMap[channelID]; do {
 		fn(*result)
 	} else if fn, do := c.callbackMap[sObj]; do {
