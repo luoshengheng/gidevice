@@ -77,8 +77,9 @@ type Device interface {
 	springBoardService() (springBoard SpringBoard, err error)
 	GetIconPNGData(bundleId string) (raw *bytes.Buffer, err error)
 	GetInterfaceOrientation() (orientation OrientationState, err error)
-	GetInstrumentsClient() (inturments *libimobiledevice.InstrumentsClient)
-	GetLockdown() (lockdown *lockdown) //add
+	GetLockdown() (lockdown *lockdown, err error) //add
+	InstrumentsService() (instruments Instruments, err error)
+	DiagnosticsRelayService() (diagnostics DiagnosticsRelay, err error)
 }
 
 type DeviceProperties = libimobiledevice.DeviceProperties
@@ -157,6 +158,7 @@ type Instruments interface {
 	//added
 	RegisterCallbackArgs(obj string, cb func(m libimobiledevice.DTXMessageResult, args ...interface{}), args ...interface{})
 	Invoke(selector string, args *libimobiledevice.AuxBuffer, channelCode uint32, expectsReply bool) (result *libimobiledevice.DTXMessageResult, err error)
+	Close()
 }
 
 type Testmanagerd interface {
@@ -225,6 +227,7 @@ type DiagnosticsRelay interface {
 	Reboot() error
 	Shutdown() error
 	DumpBattery() (result interface{}, err error) //add
+	Close()                                       //add
 }
 
 type CrashReportMover interface {

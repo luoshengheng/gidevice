@@ -64,3 +64,10 @@ func (d *diagnostics) DumpBattery() (result interface{}, err error) { //add
 
 	return
 }
+
+func (d *diagnostics) Close() {
+	connc := d.client.InnerConn()
+	if connc != nil {
+		connc.Close()
+	}
+}

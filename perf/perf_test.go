@@ -45,7 +45,7 @@ func Test_Performance(t *testing.T) {
 		log.Fatalln("No iOS devices connected!")
 	}
 	device = devices[0]
-	instrumentsClient := device.GetInstrumentsClient()
+	instrumentsClient, _ := device.InstrumentsService()
 	channelName := "com.apple.instruments.server.services.coreprofilesessiontap"
 	id, _ := instrumentsClient.RequestChannel(channelName)
 	instrumentsClient.RegisterCallbackArgs(channelName, coreProfileSessionTapCallback)
@@ -92,7 +92,7 @@ func coreProfileSessionTapCallback(messageResult libimobiledevice.DTXMessageResu
 				case 830472984:
 					log.Println(unpacked_values)
 				default:
-					fmt.Printf("illeagl frame debug code: %d\n", unpacked_values[7])
+					// fmt.Printf("illeagl frame debug code: %d\n", unpacked_values[7])
 				}
 				p += 64
 			} else {

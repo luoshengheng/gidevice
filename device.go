@@ -50,16 +50,29 @@ type device struct {
 	pcapd             Pcapd
 }
 
-func (d *device) GetLockdown() (lockdown *lockdown) {
-	d.lockdownService()
-	return d.lockdown
+func (d *device) GetLockdown() (lockdown *lockdown, err error) {
+	_, err = d.lockdownService()
+	if err != nil {
+		d.lockdown = nil
+		return
+	}
+	return d.lockdown, nil
 }
 
-func (d *device) GetInstrumentsClient() (inturments *libimobiledevice.InstrumentsClient) {
-	if d.instruments == nil {
-		d.instrumentsService()
+func (d *device) InstrumentsService() (instruments Instruments, err error) {
+	lockdown, err := d.GetLockdown()
+	if err == nil {
+		return lockdown.InstrumentsService()
 	}
-	return d.instruments.GetClient()
+	return nil, err
+}
+
+func (d *device) DiagnosticsRelayService() (diagnostics DiagnosticsRelay, err error) {
+	lockdown, err := d.GetLockdown()
+	if err == nil {
+		return lockdown.DiagnosticsRelayService()
+	}
+	return nil, err
 }
 
 func (d *device) Properties() DeviceProperties {
@@ -175,10 +188,7 @@ func (d *device) lockdownService() (lockdown Lockdown, err error) { //modified
 	ldLock.Lock()
 	defer ldLock.Unlock()
 	if d.lockdown != nil {
-		_, err := d.lockdown.InstrumentsService()
-		if err == nil {
-			return d.lockdown, nil
-		}
+		return d.lockdown, nil
 	}
 	var innerConn InnerConn
 	if innerConn, err = d.NewConnect(LockdownPort, 0); err != nil {
@@ -188,6 +198,10 @@ func (d *device) lockdownService() (lockdown Lockdown, err error) { //modified
 	d.lockdown = newLockdown(d)
 	_, err = d.lockdown._getProductVersion()
 	lockdown = d.lockdown
+	// _, err = d.lockdown.InstrumentsService()
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return
 }
 

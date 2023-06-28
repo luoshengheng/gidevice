@@ -154,7 +154,16 @@ func (i *instruments) AppRunningProcesses() (processes []Process, err error) {
 		return nil, err
 	}
 
-	objs := result.Obj.([]interface{})
+	objs := []interface{}{}
+	switch obj := result.Obj.(type) {
+	case []interface{}:
+		objs = obj
+	case interface{}:
+		objs = append(objs, obj)
+	default:
+		err = fmt.Errorf("%s", "Unknown type")
+		return
+	}
 
 	processes = make([]Process, 0, len(objs))
 
@@ -268,6 +277,9 @@ func (i *instruments) RegisterCallbackArgs(obj string, cb func(m libimobiledevic
 
 func (i *instruments) Invoke(selector string, args *libimobiledevice.AuxBuffer, channelCode uint32, expectsReply bool) (result *libimobiledevice.DTXMessageResult, err error) { //added
 	return i.client.Invoke(selector, args, channelCode, expectsReply)
+}
+func (i *instruments) Close() { //added
+	i.client.Close()
 }
 
 type Application struct {

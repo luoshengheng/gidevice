@@ -468,7 +468,6 @@ func (c *lockdown) DiagnosticsRelayService() (diagnostics DiagnosticsRelay, err 
 	}
 	diagnosticsRelayClient := libimobiledevice.NewDiagnosticsRelayClient(innerConn)
 	diagnostics = newDiagnosticsRelay(diagnosticsRelayClient)
-
 	return
 }
 
