@@ -23,6 +23,10 @@ func (c *InstrumentsClient) RequestChannel(channel string) (id uint32, err error
 	return c.client.MakeChannel(channel)
 }
 
+func (c *InstrumentsClient) Close() { // add
+	c.client.Close()
+}
+
 func (c *InstrumentsClient) Invoke(selector string, args *AuxBuffer, channelCode uint32, expectsReply bool) (result *DTXMessageResult, err error) {
 	var msgID uint32
 	if msgID, err = c.client.SendDTXMessage(selector, args.Bytes(), channelCode, expectsReply); err != nil {
