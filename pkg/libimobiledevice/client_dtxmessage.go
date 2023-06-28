@@ -18,6 +18,8 @@ const (
 	_over         = "_Golang-iDevice_Over"
 )
 
+var ocLock sync.Mutex
+
 func newDtxMessageClient(innerConn InnerConn) *dtxMessageClient {
 	c := &dtxMessageClient{
 		innerConn:         innerConn,
@@ -212,6 +214,8 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 }
 
 func (c *dtxMessageClient) RegisterCallbackArgs(obj string, cb func(m DTXMessageResult, args ...interface{}), args ...interface{}) {
+	ocLock.Lock()
+	defer ocLock.Unlock()
 	if obj == _unregistered || obj == _over {
 		c.callbackArgsMap[obj] = cb
 		c.cbArgsMap[obj] = args
@@ -260,11 +264,9 @@ func (c *dtxMessageClient) Connection() (publishedChannels map[string]int32, err
 	return c.publishedChannels, nil
 }
 
-var mkcLock sync.Mutex
-
 func (c *dtxMessageClient) MakeChannel(channel string) (id uint32, err error) { //modified
-	mkcLock.Lock()
-	defer mkcLock.Unlock()
+	ocLock.Lock()
+	defer ocLock.Unlock()
 	var ok bool
 	if id, ok = c.openedChannels[channel]; ok {
 		return id, nil
