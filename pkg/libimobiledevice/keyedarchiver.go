@@ -1,6 +1,7 @@
 package libimobiledevice
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -248,13 +249,13 @@ func (ka *NSKeyedArchiver) Unmarshal(b []byte) (interface{}, error) {
 		return nil, err
 	}
 
-	for _, v := range archiver.Objects {
-		ka.objRefVal = append(ka.objRefVal, v)
+	ka.objRefVal = append(ka.objRefVal, archiver.Objects...)
+
+	if len(ka.objRefVal) > int(archiver.Top.Root) {
+		ret := ka.convertValue(ka.objRefVal[archiver.Top.Root])
+		ka.clear()
+		return ret, nil
 	}
 
-	ret := ka.convertValue(ka.objRefVal[archiver.Top.Root])
-
-	ka.clear()
-
-	return ret, nil
+	return nil, fmt.Errorf("illegale objRefVal length")
 }
