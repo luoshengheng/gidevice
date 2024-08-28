@@ -123,8 +123,11 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 	bufPayload := new(bytes.Buffer)
 	var needToReply *dtxMessageHeaderPacket = nil
 	header := new(dtxMessageHeaderPacket)
-	lenHeader := int(unsafe.Sizeof(*header))
+
 	for {
+		header = new(dtxMessageHeaderPacket)
+
+		lenHeader := int(unsafe.Sizeof(*header))
 		var bufHeader []byte
 		if bufHeader, err = c.innerConn.Read(lenHeader); err != nil {
 			return nil, fmt.Errorf("receive: length of DTXMessageHeader: %w", err)
@@ -133,6 +136,27 @@ func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err er
 		if header, err = header.unpack(bytes.NewBuffer(bufHeader)); err != nil {
 			return nil, fmt.Errorf("receive: DTXMessageHeader unpack: %w", err)
 		}
+
+		if header.ExpectsReply == 1 {
+			needToReply = header
+		}
+
+		if header.Magic != 0x1F3D5B79 {
+			return nil, fmt.Errorf("receive: bad magic %x", header.Magic)
+		}
+
+		if header.ConversationIndex == 1 {
+			if header.Identifier != c.msgID {
+				return nil, fmt.Errorf("receive: except identifier %d new identifier %d", c.msgID, header.Identifier)
+			}
+		} else if header.ConversationIndex == 0 {
+			if header.Identifier > c.msgID {
+				c.msgID = header.Identifier
+			}
+		} else {
+			return nil, fmt.Errorf("receive: invalid conversationIndex %d", header.ConversationIndex)
+		}
+
 		if header.FragmentId == 0 && header.FragmentCount > 1 {
 			continue
 		}
