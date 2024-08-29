@@ -120,6 +120,12 @@ type UnmarshalError struct { //added
 }
 
 func (c *dtxMessageClient) ReceiveDTXMessage() (result *DTXMessageResult, err error) { //modified
+	defer func() {
+		err1 := recover()
+		if err1 != nil {
+			fmt.Println(err1)
+		}
+	}()
 	bufPayload := new(bytes.Buffer)
 	var needToReply *dtxMessageHeaderPacket = nil
 	header := new(dtxMessageHeaderPacket)
