@@ -188,9 +188,7 @@ func (d *device) lockdownService() (lockdown Lockdown, err error) { //modified
 	ldLock.Lock()
 	defer ldLock.Unlock()
 	if d.lockdown != nil {
-		if _, err = d.lockdown._getProductVersion(); err == nil {
-			return d.lockdown, nil
-		}
+		return d.lockdown, nil
 	}
 	var innerConn InnerConn
 	if innerConn, err = d.NewConnect(LockdownPort, 0); err != nil {
