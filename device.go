@@ -188,7 +188,9 @@ func (d *device) lockdownService() (lockdown Lockdown, err error) { //modified
 	ldLock.Lock()
 	defer ldLock.Unlock()
 	if d.lockdown != nil {
-		return newLockdown(d), nil
+		if _, err = d.lockdown._getProductVersion(); err == nil {
+			return d.lockdown, nil
+		}
 	}
 	var innerConn InnerConn
 	if innerConn, err = d.NewConnect(LockdownPort, 0); err != nil {
@@ -196,7 +198,9 @@ func (d *device) lockdownService() (lockdown Lockdown, err error) { //modified
 	}
 	d.lockdownClient = libimobiledevice.NewLockdownClient(innerConn)
 	d.lockdown = newLockdown(d)
-	_, err = d.lockdown._getProductVersion()
+	if _, err = d.lockdown._getProductVersion(); err != nil {
+		return
+	}
 	lockdown = d.lockdown
 	return
 }
